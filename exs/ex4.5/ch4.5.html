@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <link rel="stylesheet" href="css/stylesheet.css">
+    <script src="js/commonFunctions.js">
+    </script>
+      <script src="js/gl-matrix-min.js">
+      </script>
+      <script src="js/webglTools.js">
+      </script>
+      <script src="js/classes/AbstractObject.js"></script>
+      <script src="js/classes/Triangle.js"></script>
+      <script id="shader-vs" type="x-shader/x-vertex">
+        attribute vec3 aVertexPosition;
+        attribute vec4 aColor;
+        uniform mat4 uMVMatrix;
+        uniform mat4 uPMatrix;
+        varying vec4 vColor;
+        void main(void) {
+          vColor = aColor;
+          gl_Position = uPMatrix * uMVMatrix * vec4(aVertexPosition, 1.0);
+        }
+      </script>
+      <script id="shader-fs" type="x-shader/x-fragment">
+        #ifdef GL_ES
+          precision highp float;
+        #endif
+          varying vec4 vColor;
+        void main(void) {
+          gl_FragColor = vColor;
+        }
+      </script>
+      <script>
+        var objects = [];
+        var mvMatrix = mat4.create();
+        var pMatrix = mat4.create();
+        var rot = 0;
+        function initShaderParameters(prg){
+          prg.vertexPositionAttribute = glContext.getAttribLocation(prg, "aVertexPosition");
+          glContext.enableVertexAttribArray(prg.vertexPositionAttribute);
+          prg.colorAttribute 			= glContext.getAttribLocation(prg, "aColor");
+          glContext.enableVertexAttribArray(prg.colorAttribute);
+          prg.pMatrixUniform          = glContext.getUniformLocation(prg, 'uPMatrix');
+          prg.mvMatrixUniform         = glContext.getUniformLocation(prg, 'uMVMatrix');
+        }
+        function initScene(){
+          /*let n = 7;
+          let increment = parseFloat(1.0 / n);
+          for(var i = 1,whiteness = 0.0,z = 1.0,rot = 0; i <= n; i ++,whiteness += increment,z -= increment,rot += 3.14 / n){
+            let t = new Triangle(1.0 / parseFloat(i), 1.0 / parseFloat(i),z,whiteness);
+
+            objects.push(t);
+          }*/
+
+          let A = [0.0,1.0,0.0];
+          let B = [1.0,0.0,0.0];
+          let C = [-1.0,0.0,0.0];
+          let x = 1.0 / 7.0;
+
+          let firstTriangle = new Triangle({
+            a: {x: A[0],y : A[1], z: A[2]},
+            b: {x: B[0],y : B[1], z: B[2]},
+            c: {x: C[0],y : C[1], z: C[2]}
+          },0.0);
+          objects.push(firstTriangle);
+          for(var i = 1 ; i <= 7 ; i++){
+            let t = getNextTriangle(objects[objects.length - 1 ],i * x);
+            console.log(t);
+            objects.push(t);
+          }
+        }
+        function getNextTriangle(currentTriangle,offset){
+          let vecCA = generateVector(currentTriangle.c,currentTriangle.a);
+          let vecAB = generateVector(currentTriangle.a,currentTriangle.b);
+          let vecBC = generateVector(currentTriangle.b,currentTriangle.c);
+          let a = getNextPoint(currentTriangle.c,vecCA,1.0 - offset);
+          let b = getNextPoint(currentTriangle.a,vecAB,1.0 - offset);
+          let c = getNextPoint(currentTriangle.b,vecBC,1.0 - offset);
+
+          return new Triangle({
+            a : a,
+            b : b,
+            c : c
+          },1.0 - offset);
+        }
+        function generateVector(pointA,pointB){
+            return {
+              x : pointB.x - pointA.x,
+              y : pointB.y - pointA.y,
+              z : pointB.z - pointA.z
+            }
+        }
+
+        function getNextPoint(point,vec,ratio){
+          let rationnedVec = {
+            x : vec.x * ratio,
+            y : vec.y * ratio,
+            z : vec.z * ratio
+          }
+          return {
+            x : point.x + rationnedVec.x,
+            y : point.y + rationnedVec.y,
+            z : point.z + rationnedVec.z
+          }
+        }
+        function drawScene(){
+          glContext.clearColor(0.9, 0.9, 0.9, 1.0);
+          glContext.enable(glContext.DEPTH_TEST);
+          glContext.clear(glContext.COLOR_BUFFER_BIT | glContext.DEPTH_BUFFER_BIT);
+          glContext.viewport(0, 0, c_width, c_height);
+          mat4.identity(pMatrix);
+          mat4.identity(mvMatrix);
+
+          var initMvMatrix = mat4.create();
+
+
+          //mat4.copy(initMvMatrix,mvMatrix);
+
+
+          mat4.perspective(degToRad(60.0),c_width / c_height,0.1,10000.0,pMatrix);
+
+          glContext.uniformMatrix4fv(prg.pMatrixUniform, false, pMatrix);
+
+
+          objects.forEach(o => {
+
+            //o.rotateZ(rot);
+
+            //Restoring matrix
+            //mat4.copy(mvMatrix,initMvMatrix);
+
+            //Drawing
+            o.draw(glContext);
+
+            //Applying transforms
+            glContext.uniformMatrix4fv(prg.mvMatrixUniform, false, mvMatrix);
+          });
+
+        }
+        function initWebGL(){
+          glContext = getGLContext('webgl-canvas');
+          initProgram();
+          initScene();
+          renderLoop();
+        }
+      </script>
+  </head>
+  <body onload="initWebGL()">
+    <script>
+      displayTitle("Ch.03 E.g.1 : Un simple triangle", 1,1,1,1,1,1,1);
+    </script>
+    <br>
+    Hello World! Un simple triangle.
+    <br>
+    <canvas id="webgl-canvas" width="500" height="500">
+      HTML5 is not supported
+    </canvas>
+  </body>
+</html>
