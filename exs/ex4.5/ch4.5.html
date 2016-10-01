@@ -35,7 +35,9 @@
         var objects = [];
         var mvMatrix = mat4.create();
         var pMatrix = mat4.create();
-        var rot = 0;
+        var translationMat = mat4.create();
+        var vector3 = vec3.create();
+
         function initShaderParameters(prg){
           prg.vertexPositionAttribute = glContext.getAttribLocation(prg, "aVertexPosition");
           glContext.enableVertexAttribArray(prg.vertexPositionAttribute);
@@ -45,28 +47,30 @@
           prg.mvMatrixUniform         = glContext.getUniformLocation(prg, 'uMVMatrix');
         }
         function initScene(){
-          /*let n = 7;
-          let increment = parseFloat(1.0 / n);
-          for(var i = 1,whiteness = 0.0,z = 1.0,rot = 0; i <= n; i ++,whiteness += increment,z -= increment,rot += 3.14 / n){
-            let t = new Triangle(1.0 / parseFloat(i), 1.0 / parseFloat(i),z,whiteness);
 
-            objects.push(t);
-          }*/
-
-          let A = [0.0,1.0,0.0];
-          let B = [1.0,0.0,0.0];
-          let C = [-1.0,0.0,0.0];
+          let A = [0.0,1.0,0];
+          let B = [1.0,-1.0,0];
+          let C = [-1.0,-1.0,0];
           let x = 1.0 / 7.0;
+          let z = 1.0 / 7.0;
 
           let firstTriangle = new Triangle({
             a: {x: A[0],y : A[1], z: A[2]},
             b: {x: B[0],y : B[1], z: B[2]},
             c: {x: C[0],y : C[1], z: C[2]}
           },0.0);
+
+
           objects.push(firstTriangle);
+
           for(var i = 1 ; i <= 7 ; i++){
             let t = getNextTriangle(objects[objects.length - 1 ],i * x);
             console.log(t);
+            t.a.z = i * z;
+            t.b.z = i * z;
+            t.c.z = i * z;
+            console.log("Z " + t.a.z);
+            t._calculateVertices();
             objects.push(t);
           }
         }
@@ -74,15 +78,15 @@
           let vecCA = generateVector(currentTriangle.c,currentTriangle.a);
           let vecAB = generateVector(currentTriangle.a,currentTriangle.b);
           let vecBC = generateVector(currentTriangle.b,currentTriangle.c);
-          let a = getNextPoint(currentTriangle.c,vecCA,1.0 - offset);
-          let b = getNextPoint(currentTriangle.a,vecAB,1.0 - offset);
-          let c = getNextPoint(currentTriangle.b,vecBC,1.0 - offset);
+          let a = getNextPoint(currentTriangle.c,vecCA,0.85);
+          let b = getNextPoint(currentTriangle.a,vecAB,0.85);
+          let c = getNextPoint(currentTriangle.b,vecBC,0.85);
 
           return new Triangle({
             a : a,
             b : b,
             c : c
-          },1.0 - offset);
+          },offset);
         }
         function generateVector(pointA,pointB){
             return {
@@ -111,30 +115,21 @@
           glContext.viewport(0, 0, c_width, c_height);
           mat4.identity(pMatrix);
           mat4.identity(mvMatrix);
+          mat4.perspective(pMatrix, degToRad(60.0), c_width / c_height, .1, 10000.0);
 
-          var initMvMatrix = mat4.create();
-
-
-          //mat4.copy(initMvMatrix,mvMatrix);
-
-
-          mat4.perspective(degToRad(60.0),c_width / c_height,0.1,10000.0,pMatrix);
+          vec3.set(vector3, 0, 0, -2);
+          mat4.identity(translationMat);
+          mat4.translate(translationMat, translationMat, vector3);
+          mat4.multiply(mvMatrix, translationMat, mvMatrix);
 
           glContext.uniformMatrix4fv(prg.pMatrixUniform, false, pMatrix);
+          glContext.uniformMatrix4fv(prg.mvMatrixUniform, false, mvMatrix);
 
-
-          objects.forEach(o => {
-
-            //o.rotateZ(rot);
-
-            //Restoring matrix
-            //mat4.copy(mvMatrix,initMvMatrix);
+          objects.forEach((o,index) => {
 
             //Drawing
             o.draw(glContext);
 
-            //Applying transforms
-            glContext.uniformMatrix4fv(prg.mvMatrixUniform, false, mvMatrix);
           });
 
         }

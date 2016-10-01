@@ -53,6 +53,4 @@ class Triangle extends AbstractObject {
 
     glContext.drawElements(glContext.TRIANGLE_STRIP, this.indices.length, glContext.UNSIGNED_SHORT,0);
   }
-
-
 }
